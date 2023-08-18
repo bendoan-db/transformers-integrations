@@ -1,8 +1,4 @@
 # Databricks notebook source
-
-
-# COMMAND ----------
-
 dbutils.widgets.text("model_name", "")
 
 # COMMAND ----------

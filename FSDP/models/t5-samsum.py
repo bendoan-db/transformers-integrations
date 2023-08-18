@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import logging
+from logging import log
 import py7zr
 import evaluate
 import torch
@@ -179,6 +181,8 @@ def training_function(config, args):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
+            print("Training step: " + str(step))
+            print("Training Epoch: " + str(epoch))
                 
 
         model.eval()
