@@ -41,11 +41,11 @@ from accelerate import Accelerator, DistributedType
 ########################################################################
 
 
-MAX_GPU_BATCH_SIZE = 4
-EVAL_BATCH_SIZE = 4
+MAX_GPU_BATCH_SIZE = 2
+EVAL_BATCH_SIZE = 2
 
 
-def get_dataloaders(accelerator: Accelerator, batch_size: int = 4):
+def get_dataloaders(accelerator: Accelerator, batch_size: int = 2):
     """
     Creates a set of `DataLoader`s for the `glue` dataset,
     using "bert-base-cased" as the tokenizer.
@@ -179,6 +179,7 @@ def training_function(config, args):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
+                
 
         model.eval()
         for step, batch in enumerate(eval_dataloader):
@@ -211,7 +212,7 @@ def main():
     )
     parser.add_argument("--cpu", action="store_true", help="If passed, will train on the CPU.")
     args = parser.parse_args()
-    config = {"lr": 2e-5, "num_epochs": 5, "seed": 42, "batch_size": 4}
+    config = {"lr": 2e-5, "num_epochs": 5, "seed": 42, "batch_size": 2}
     training_function(config, args)
 
 
