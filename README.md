@@ -14,8 +14,6 @@ In this experiment, we evaluate the cost performance of training various T5-3B u
 | **Multi-GPU** (A100s)  | TBD       | TBD      |
 
 
-
-
 ##### Approximate Cost Per Run (Compute + Databricks Licensing)
 
 |       | **Full Weight** | **PEFT**     |
@@ -24,7 +22,7 @@ In this experiment, we evaluate the cost performance of training various T5-3B u
 | **Multi-GPU**   | TBD        | TBD      |
 
 
-### Next Steps
+### TODO
 - Deploy onto an A100 cluster
 - Test on Llamav2`, `Platypus12B`, `MPT`
 - Integrate with MLflow
