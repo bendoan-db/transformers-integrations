@@ -77,7 +77,3 @@
 # MAGIC 2. `BackwardPrefetch.BACKWARD_POST`: Prefetch next params after the params are dropped but before the gradients are scattered
 # MAGIC 3. `BackwardPrefetch.BACKWARD_PRE`: Prefetch params at the start of the FSDP unit computation. Basically, current and next params are fetched at the same time. Adds to peak memory
 # MAGIC     - Testing indicates 13% speed up with 0.59% memory increase
-
-# COMMAND ----------
-
-
