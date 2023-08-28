@@ -8,13 +8,27 @@
 
 # COMMAND ----------
 
+import os
+import json
+
+os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
+os.environ['MLFLOW_EXPERIMENT_NAME'] = "/Users/ben.doan@databricks.com/fine-tuning-t5-samsum"
+os.environ['MLFLOW_FLATTEN_PARAMS'] = "true"
+
+host = json.loads(dbutils.notebook.entry_point.getDbutils().notebook() \
+  .getContext().toJson())['tags']['browserHostName']
+
+os.environ['DATABRICKS_HOST'] = "https://" + host
+
+# COMMAND ----------
+
 # DBTITLE 1,Install any required libraries
 !/databricks/python/bin/pip install py7zr
 
 # COMMAND ----------
 
 # DBTITLE 1,Launch accelerate job
-# MAGIC %sh accelerate launch --config_file /Workspace/Repos/ben.doan@databricks.com/fsdp-transformers-integration/FSDP/config/t5-fsdp-config.yaml ./models/t5-samsum.py
+# MAGIC %sh export DATABRICKS_TOKEN && export DATABRICKS_HOST && export MLFLOW_EXPERIMENT_NAME && export MLFLOW_FLATTEN_PARAMS=true && accelerate launch --config_file /Workspace/Repos/ben.doan@databricks.com/transformers-integrations/FSDP/config/t5-fsdp-config-cpu.yaml ./models/t5-samsum.py
 
 # COMMAND ----------
 
