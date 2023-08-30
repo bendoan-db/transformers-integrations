@@ -1,4 +1,4 @@
-compute_environment: LOCAL_MACHINE                                                     
+compute_environment: LOCAL_MACHINE
 distributed_type: FSDP
 downcast_bf16: 'no'
 fsdp_config:
@@ -7,7 +7,7 @@ fsdp_config:
   fsdp_offload_params: false
   fsdp_sharding_strategy: 1
   fsdp_state_dict_type: FULL_STATE_DICT
-  fsdp_transformer_layer_cls_to_wrap: T5Block
+  fsdp_transformer_layer_cls_to_wrap: BertLayer
 machine_rank: 0
 main_training_function: main
 mixed_precision: bf16
