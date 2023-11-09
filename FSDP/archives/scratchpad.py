@@ -86,4 +86,28 @@ tokenized_dataset
 
 # COMMAND ----------
 
+ import torch 
+ print("Cuda support:", torch.cuda.is_available(),":", torch.cuda.device_count(), "devices")
 
+# COMMAND ----------
+
+print(torch.cuda.is_available())
+
+# COMMAND ----------
+
+import accelerate
+accelerate.__version__
+
+# COMMAND ----------
+
+import torch
+torch.__version__
+
+# COMMAND ----------
+
+import mlflow
+mlflow.__version__
+
+# COMMAND ----------
+
+|

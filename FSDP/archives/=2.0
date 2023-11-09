@@ -1,0 +1,32 @@
+Requirement already satisfied: flash-attn in /databricks/python3/lib/python3.10/site-packages (2.0.8)
+Collecting flash-attn
+  Downloading flash_attn-2.3.3.tar.gz (2.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 16.4 MB/s eta 0:00:00
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: torch in /databricks/python3/lib/python3.10/site-packages (from flash-attn) (2.0.1+cu118)
+Requirement already satisfied: einops in /databricks/python3/lib/python3.10/site-packages (from flash-attn) (0.7.0)
+Requirement already satisfied: packaging in /databricks/python3/lib/python3.10/site-packages (from flash-attn) (22.0)
+Requirement already satisfied: ninja in /databricks/python3/lib/python3.10/site-packages (from flash-attn) (1.11.1)
+Requirement already satisfied: networkx in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (2.8.4)
+Requirement already satisfied: filelock in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (3.9.0)
+Requirement already satisfied: jinja2 in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (3.1.2)
+Requirement already satisfied: triton==2.0.0 in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (2.0.0)
+Requirement already satisfied: sympy in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (1.11.1)
+Requirement already satisfied: typing-extensions in /databricks/python3/lib/python3.10/site-packages (from torch->flash-attn) (4.4.0)
+Requirement already satisfied: cmake in /databricks/python3/lib/python3.10/site-packages (from triton==2.0.0->torch->flash-attn) (3.27.6)
+Requirement already satisfied: lit in /databricks/python3/lib/python3.10/site-packages (from triton==2.0.0->torch->flash-attn) (17.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in /databricks/python3/lib/python3.10/site-packages (from jinja2->torch->flash-attn) (2.1.1)
+Requirement already satisfied: mpmath>=0.19 in /databricks/python3/lib/python3.10/site-packages (from sympy->torch->flash-attn) (1.2.1)
+Building wheels for collected packages: flash-attn
+  Building wheel for flash-attn (setup.py): started
+  Building wheel for flash-attn (setup.py): finished with status 'done'
+  Created wheel for flash-attn: filename=flash_attn-2.3.3-cp310-cp310-linux_x86_64.whl size=57037838 sha256=0aeefa239fc22cf40387d7adc9b931a42810836a8e7b39d5c1da705c9fe70ff1
+  Stored in directory: /root/.cache/pip/wheels/69/19/a6/8d3a62f5480bd285036c65144d3ce0151cfc93ebcc3920d21f
+Successfully built flash-attn
+Installing collected packages: flash-attn
+  Attempting uninstall: flash-attn
+    Found existing installation: flash-attn 2.0.8
+    Uninstalling flash-attn-2.0.8:
+      Successfully uninstalled flash-attn-2.0.8
+Successfully installed flash-attn-2.3.3

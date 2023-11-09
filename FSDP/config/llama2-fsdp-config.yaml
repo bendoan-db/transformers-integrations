@@ -4,10 +4,10 @@ downcast_bf16: 'no'
 fsdp_config:
   fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
   fsdp_backward_prefetch_policy: BACKWARD_PRE
-  fsdp_offload_params: false
+  fsdp_offload_params: true
   fsdp_sharding_strategy: 1
   fsdp_state_dict_type: FULL_STATE_DICT
-  fsdp_transformer_layer_cls_to_wrap: TransformerBlock
+  fsdp_transformer_layer_cls_to_wrap: LlamaDecoderLayer
 machine_rank: 0
 main_training_function: main
 mixed_precision: bf16

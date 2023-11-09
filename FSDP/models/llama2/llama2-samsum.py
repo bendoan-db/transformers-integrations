@@ -22,10 +22,15 @@ import torch
 from datasets import load_dataset
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup, set_seed, AutoModelForSeq2SeqLM
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup, set_seed, AutoModelForSeq2SeqLM, LlamaForCausalLM, LlamaTokenizer
+from llama_recipes.utils.dataset_utils import get_preprocessed_dataset
+from llama_recipes.configs.datasets import samsum_dataset
 
 from accelerate import Accelerator, DistributedType
-
+from decimal import *
+from datetime import datetime
+import time
+import pynvml
 
 ########################################################################
 # This is a fully working simple example to use Accelerate
@@ -44,10 +49,15 @@ from accelerate import Accelerator, DistributedType
 ########################################################################
 
 
-MAX_GPU_BATCH_SIZE = 8
-BATCH_SIZE = 4
-EVAL_BATCH_SIZE = 4
+MAX_GPU_BATCH_SIZE = 2
+BATCH_SIZE = 2
+EVAL_BATCH_SIZE = 2
+TOKEN="TOKEN_HERE"
+model_name="meta-llama/Llama-2-7b-hf"
 
+def log_gpu_metrics(run_type:str, step):
+   for i in range(torch.cuda.device_count()):
+     mlflow.log_metric(run_type+"_gpu_utilization_gb_rank_"+str(i)+"_pct", Decimal(torch.cuda.utilization(device=i)/100), step=step)
 
 def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
     """
@@ -60,49 +70,43 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
         batch_size (`int`, *optional*):
             The batch size for the train and validation DataLoaders.
     """
-    tokenizer = AutoTokenizer.from_pretrained("t5-3b")
-    dataset = load_dataset('samsum')
 
-    sample_count=0
 
-    def tokenize_function(sample, padding="max_length"):
-        # add prefix to the input for t5
-      inputs = ["summarize: " + item for item in sample["dialogue"]]
+    tokenizer = LlamaTokenizer.from_pretrained(model_name, token=TOKEN)
+    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    dataset = get_preprocessed_dataset(tokenizer, samsum_dataset).train_test_split(test_size=0.3)
 
-      # tokenize inputs
-      # TODO: Dynamically calculate max length of input tokens in dataset
-      outputs = tokenizer(inputs, max_length=512, padding=padding, truncation=True)
+    # def truncate_function(examples, max_length=1024):
+    #     # Truncate input_ids to max_length
+    #     examples["input_ids"] = examples["input_ids"][:max_length]
 
-      # Tokenize targets with the `text_target` keyword argument
-      # TODO: Dynamically calculate max length of label tokens in dataset
-      labels = tokenizer(text_target=sample["summary"], max_length=95, padding=padding, truncation=True)
-
-      # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
-      # padding in the loss.
-      if padding == "max_length":
-          labels["input_ids"] = [
-              [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
-          ]
-
-      outputs["labels"] = labels["input_ids"]
-      return outputs
-
-    # Apply the method we just defined to all the examples in all the splits of the dataset
-    # starting with the main process first:
-    with accelerator.main_process_first():
-        tokenized_datasets = dataset.map(tokenize_function, batched=True, remove_columns=["dialogue", "summary", "id"])
-
+    #     # Truncate input_ids to max_length
+    #     examples["labels"] = examples["labels"][:max_length]
+        
+    #     # Also truncate attention_mask if it exists in your dataset
+    #     if "attention_mask" in examples:
+    #         examples["attention_mask"] = examples["attention_mask"][:max_length]
+        
+    #     return examples
+    
+    # with accelerator.main_process_first():
+    #     dataset = dataset.map(
+    #         truncate_function,
+    #         batched=True
+    #     )
+    #     print("/n Dataset truncated.")
+    
 
     def collate_fn(examples):
-      # On TPU it's best to pad everything to the same length or training will be very slow.
-      max_length = 128 if accelerator.distributed_type == DistributedType.TPU else None
       # When using mixed precision we want round multiples of 8/16
+      max_length = 1024
       if accelerator.mixed_precision == "fp8":
           pad_to_multiple_of = 16
       elif accelerator.mixed_precision != "no":
           pad_to_multiple_of = 8
       else:
           pad_to_multiple_of = None
+        
 
       return tokenizer.pad(
           examples,
@@ -114,11 +118,13 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
 
     # Instantiate dataloaders.
     train_dataloader = DataLoader(
-        tokenized_datasets["train"], shuffle=True, collate_fn=collate_fn, batch_size=batch_size, drop_last=True
+        dataset["train"], shuffle=True, collate_fn=collate_fn, batch_size=batch_size, drop_last=True
     )
 
+    print(str(len(dataset["train"][0]["input_ids"])))
+
     eval_dataloader = DataLoader(
-        tokenized_datasets["validation"],
+        dataset["test"],
         shuffle=False,
         collate_fn=collate_fn,
         batch_size=EVAL_BATCH_SIZE,
@@ -147,38 +153,38 @@ def training_function(config, args):
 
     set_seed(seed)
     train_dataloader, eval_dataloader = get_dataloaders(accelerator, batch_size)
-    # Instantiate the model (we build the model here so that the seed also control new weights initialization)
-    model = AutoModelForSeq2SeqLM.from_pretrained('t5-3b')
-    # We could avoid this line since the accelerator is set with `device_placement=True` (default value).
-    # Note that if you are placing tensors on devices manually, this line absolutely needs to be before the optimizer
-    # creation otherwise training will not work on TPU (`accelerate` will kindly throw an error to make us aware of that).
-    #model = model.to(accelerator.device)
+    
+    # Instantiate the model
+    device = accelerator.device
+    model = LlamaForCausalLM.from_pretrained(model_name, token=TOKEN, torch_dtype=torch.float16)
+    model.to(device)
+    model = accelerator.prepare(model)
+    
     # Instantiate optimizer
     optimizer = AdamW(params=model.parameters(), lr=lr)
 
     # Instantiate scheduler
     lr_scheduler = get_linear_schedule_with_warmup(
         optimizer=optimizer,
-        num_warmup_steps=2,
+        num_warmup_steps=3,
         num_training_steps=(len(train_dataloader) * num_epochs) // gradient_accumulation_steps,
     )
 
-    # Prepare everything
     # There is no specific order to remember, we just need to unpack the objects in the same order we gave them to the
     # prepare method.
 
-    model, optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
-        model, optimizer, train_dataloader, eval_dataloader, lr_scheduler
+    optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
+        optimizer, train_dataloader, eval_dataloader, lr_scheduler
     )
-    with mlflow.start_run(run_name='doan_fdsp_test'):
-      mlflow.pytorch.autolog(log_every_n_step=1)
+    with mlflow.start_run():
       # Now we train the model
       for epoch in range(num_epochs):
-          print("\n starting model training..... \n")
           model.train()
+          epoch_start_time = time.monotonic()
+          print(torch.cuda.memory_summary(device=None, abbreviated=False))
           for step, batch in enumerate(train_dataloader):
-              print("Starting step: " + str(step) + " on epoch " + str(epoch))
-              # We could avoid this line since we set the accelerator with `device_placement=True`.
+              print("step: " + str(step))
+              print(len(batch["input_ids"][0]))
               batch.to(accelerator.device)
               outputs = model(**batch)
               loss = outputs.loss
@@ -188,8 +194,10 @@ def training_function(config, args):
                   optimizer.step()
                   lr_scheduler.step()
                   optimizer.zero_grad()
-                  
 
+          log_gpu_metrics("training", epoch)
+          mlflow.log_metric("loss", loss, step=epoch)
+                  
           model.eval()
           for step, batch in enumerate(eval_dataloader):
               # We could avoid this line since we set the accelerator with `device_placement=True`.
@@ -205,8 +213,16 @@ def training_function(config, args):
 
           eval_metric = metric.compute()
           # Use accelerator.print to print only on the main process.
+          mlflow.log_metric("epoch_time_minutes", (time.monotonic()-epoch_start_time)/60, step=epoch)
+          mlflow.log_metric("accuracy", eval_metric["accuracy"], step=epoch)
+          mlflow.log_metric("f1", eval_metric["f1"], step=epoch)
+          log_gpu_metrics("eval", epoch)
+          # Use accelerator.print to print only on the main process.
           accelerator.print(f"epoch {epoch}:", eval_metric)
+    
+    mlflow_model_components = {"model": accelerate.utils.extract_model_from_parallel(model), "tokenizer": LlamaTokenizer.from_pretrained(model_name, token=TOKEN)}
 
+    mlflow.transformers.log_model(mlflow_model_components, "doan_llama27b_model")
 
 def main():
     parser = argparse.ArgumentParser(description="Simple example of training script.")

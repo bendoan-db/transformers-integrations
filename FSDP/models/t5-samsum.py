@@ -29,7 +29,7 @@ import datetime
 
 from accelerate import Accelerator, DistributedType
 from decimal import *
-import pynvm
+import pynvml
 
 
 ########################################################################

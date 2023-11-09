@@ -208,15 +208,11 @@ def training_function(config, args):
           mlflow.log_metric("f1", eval_metric["f1"], step=epoch)
           log_gpu_metrics("eval", epoch)
           accelerator.print(f"epoch {epoch}:", eval_metric)
+    
+    mlflow_model_components = {"model": accelerate.utils.extract_model_from_parallel(model), "tokenizer": AutoTokenizer.from_pretrained("bert-base-cased")}
 
-    #TODO: Figure out how to extract transformers model from Accelerate wraper    
-    final_model = {
-      "model": accelerate.utils.extract_model_from_parallel(model),
-      "tokenizer": AutoTokenizer.from_pretrained("bert-base-cased")
-    }
-    print(type(model))
-    print(type(accelerate.utils.extract_model_from_parallel(model)))
-    #mlflow.pytorch.save_model(final_model, path="dbfs:/Users/ben.doan@databricks.com/models/" +model_name+"_"+ str(int(datetime.now().timestamp())))
+    mlflow.transformers.log_model(mlflow_model_components, "doan_bert_model")
+
 
 
 
