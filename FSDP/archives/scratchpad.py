@@ -110,4 +110,28 @@ mlflow.__version__
 
 # COMMAND ----------
 
-|
+test_str = None
+
+if test_str:
+  print("ye")
+else:
+  print("nah")
+
+# COMMAND ----------
+
+def get_hf_token(secret_scope:str, secret_key:str):
+    try:
+        print("Using Token with scope: " + secret_scope +" and key: " + secret_key)
+        hf_token = dbutils.secrets.get(scope = secret_scope, key = secret_key)
+    except:
+        print("No token found with this scope + key")
+        hf_token = None
+    return hf_token
+
+# COMMAND ----------
+
+test = get_hf_token("doan-huggingface", "hf-token")
+
+# COMMAND ----------
+
+

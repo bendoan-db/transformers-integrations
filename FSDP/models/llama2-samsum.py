@@ -31,6 +31,7 @@ from decimal import *
 from datetime import datetime
 import time
 import pynvml
+from model_utilities.model_utils import get_hf_token, log_gpu_metrics_mlflow
 
 ########################################################################
 # This is a fully working simple example to use Accelerate
@@ -52,12 +53,9 @@ import pynvml
 MAX_GPU_BATCH_SIZE = 2
 BATCH_SIZE = 2
 EVAL_BATCH_SIZE = 2
-TOKEN="TOKEN_HERE"
+TOKEN=get_hf_token(use_env_variable=True)
 model_name="meta-llama/Llama-2-7b-hf"
 
-def log_gpu_metrics(run_type:str, step):
-   for i in range(torch.cuda.device_count()):
-     mlflow.log_metric(run_type+"_gpu_utilization_gb_rank_"+str(i)+"_pct", Decimal(torch.cuda.utilization(device=i)/100), step=step)
 
 def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
     """
@@ -71,30 +69,9 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
             The batch size for the train and validation DataLoaders.
     """
 
-
     tokenizer = LlamaTokenizer.from_pretrained(model_name, token=TOKEN)
     tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     dataset = get_preprocessed_dataset(tokenizer, samsum_dataset).train_test_split(test_size=0.3)
-
-    # def truncate_function(examples, max_length=1024):
-    #     # Truncate input_ids to max_length
-    #     examples["input_ids"] = examples["input_ids"][:max_length]
-
-    #     # Truncate input_ids to max_length
-    #     examples["labels"] = examples["labels"][:max_length]
-        
-    #     # Also truncate attention_mask if it exists in your dataset
-    #     if "attention_mask" in examples:
-    #         examples["attention_mask"] = examples["attention_mask"][:max_length]
-        
-    #     return examples
-    
-    # with accelerator.main_process_first():
-    #     dataset = dataset.map(
-    #         truncate_function,
-    #         batched=True
-    #     )
-    #     print("/n Dataset truncated.")
     
 
     def collate_fn(examples):
@@ -132,7 +109,6 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = BATCH_SIZE):
     )
 
     return train_dataloader, eval_dataloader
-
 
 def training_function(config, args):
     # Initialize accelerator
